@@ -1,0 +1,574 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Registered ZX STORE customer or administrator account with NPR wallet balance.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Authentication user UID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Full display name of the user.",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Verified email address of the user.",
+          "minLength": 5,
+          "maxLength": 120
+        },
+        "phone": {
+          "type": "string",
+          "description": "Nepali mobile phone number (immutable once set).",
+          "minLength": 7,
+          "maxLength": 20,
+          "pattern": "^[0-9+\\- ]+$"
+        },
+        "role": {
+          "type": "string",
+          "description": "Role-based access tier.",
+          "enum": ["user", "admin"],
+          "maxLength": 10
+        },
+        "walletBalance": {
+          "type": "number",
+          "description": "Current wallet balance in Nepalese Rupees (NPR)."
+        },
+        "lastTxId": {
+          "type": "string",
+          "description": "ID of the most recent atomic wallet transaction.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Account creation server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last profile or wallet update server timestamp."
+        }
+      },
+      "required": [
+        "uid",
+        "fullName",
+        "email",
+        "phone",
+        "role",
+        "walletBalance",
+        "lastTxId",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AdminGrant": {
+      "title": "AdminGrant",
+      "description": "Trusted administrator privilege record keyed by user UID.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Target administrator UID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Target administrator email.",
+          "minLength": 5,
+          "maxLength": 120
+        },
+        "grantedBy": {
+          "type": "string",
+          "description": "UID of the super administrator who granted access.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Grant creation server timestamp."
+        }
+      },
+      "required": ["uid", "email", "grantedBy", "createdAt"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Game top-up title, digital service, or SMM platform item in ZX STORE.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique product identifier.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "description": "Display title of the game or service.",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "slug": {
+          "type": "string",
+          "description": "URL-friendly slug.",
+          "minLength": 2,
+          "maxLength": 80,
+          "pattern": "^[a-z0-9\\-]+$"
+        },
+        "category": {
+          "type": "string",
+          "description": "Store category classification.",
+          "enum": ["game", "digital", "smm"],
+          "maxLength": 20
+        },
+        "smmPlatform": {
+          "type": "string",
+          "description": "Associated social platform for SMM items.",
+          "enum": ["none", "Instagram", "Facebook", "YouTube", "TikTok", "Telegram"],
+          "maxLength": 20
+        },
+        "publisher": {
+          "type": "string",
+          "description": "Publisher or provider name.",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "description": {
+          "type": "string",
+          "description": "Top-up instructions and product summary.",
+          "minLength": 5,
+          "maxLength": 400
+        },
+        "inputLabel": {
+          "type": "string",
+          "description": "Label for target account input field (e.g. Player ID).",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "inputPlaceholder": {
+          "type": "string",
+          "description": "Placeholder hint for target account input field.",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "artworkKey": {
+          "type": "string",
+          "description": "Theme artwork identifier.",
+          "minLength": 2,
+          "maxLength": 40,
+          "pattern": "^[a-z0-9_\\-]+$"
+        },
+        "badgeText": {
+          "type": "string",
+          "description": "Optional concise promotional label.",
+          "minLength": 0,
+          "maxLength": 30
+        },
+        "sortOrder": {
+          "type": "number",
+          "description": "Numeric ordering priority."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Whether the product is visible in the public storefront."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update server timestamp."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "slug",
+        "category",
+        "smmPlatform",
+        "publisher",
+        "description",
+        "inputLabel",
+        "inputPlaceholder",
+        "artworkKey",
+        "badgeText",
+        "sortOrder",
+        "active",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "TopUpPackage": {
+      "title": "TopUpPackage",
+      "description": "Purchasable diamond, UC, subscription, or SMM package priced in NPR.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique package identifier.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "productId": {
+          "type": "string",
+          "description": "Parent Product ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "description": "Package display title.",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "amountLabel": {
+          "type": "string",
+          "description": "Primary unit label (e.g. 115 Diamonds).",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "bonusLabel": {
+          "type": "string",
+          "description": "Optional bonus text.",
+          "minLength": 0,
+          "maxLength": 60
+        },
+        "serviceType": {
+          "type": "string",
+          "description": "Sub-type used for SMM filtering or game topup.",
+          "enum": ["topup", "Followers", "Likes", "Views", "Members"],
+          "maxLength": 20
+        },
+        "priceNpr": {
+          "type": "number",
+          "description": "Selling price in NPR."
+        },
+        "originalPriceNpr": {
+          "type": "number",
+          "description": "Reference retail price in NPR."
+        },
+        "sortOrder": {
+          "type": "number",
+          "description": "Display sort index."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Whether package is available for purchase."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update server timestamp."
+        }
+      },
+      "required": [
+        "id",
+        "productId",
+        "name",
+        "amountLabel",
+        "bonusLabel",
+        "serviceType",
+        "priceNpr",
+        "originalPriceNpr",
+        "sortOrder",
+        "active",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer top-up or SMM service order paid via ZX STORE wallet.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Order document ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "orderCode": {
+          "type": "string",
+          "description": "Human-readable order code.",
+          "minLength": 4,
+          "maxLength": 32,
+          "pattern": "^[A-Z0-9\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Purchasing user UID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userEmail": {
+          "type": "string",
+          "format": "email",
+          "description": "Purchasing user email.",
+          "minLength": 5,
+          "maxLength": 120
+        },
+        "userName": {
+          "type": "string",
+          "description": "Purchasing user full name.",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "productId": {
+          "type": "string",
+          "description": "Purchased product ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "productName": {
+          "type": "string",
+          "description": "Snapshot of product name.",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "productCategory": {
+          "type": "string",
+          "description": "Snapshot of product category.",
+          "enum": ["game", "digital", "smm"],
+          "maxLength": 20
+        },
+        "artworkKey": {
+          "type": "string",
+          "description": "Snapshot of product artwork key.",
+          "minLength": 2,
+          "maxLength": 40,
+          "pattern": "^[a-z0-9_\\-]+$"
+        },
+        "packageId": {
+          "type": "string",
+          "description": "Purchased package ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "packageName": {
+          "type": "string",
+          "description": "Snapshot of package name.",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "targetAccount": {
+          "type": "string",
+          "description": "Player ID, Zone ID, or social media link.",
+          "minLength": 2,
+          "maxLength": 200
+        },
+        "quantity": {
+          "type": "number",
+          "description": "Order quantity."
+        },
+        "priceNpr": {
+          "type": "number",
+          "description": "Total NPR charged from wallet."
+        },
+        "status": {
+          "type": "string",
+          "description": "Fulfillment status.",
+          "enum": ["Pending", "Successful", "Cancelled"],
+          "maxLength": 20
+        },
+        "txId": {
+          "type": "string",
+          "description": "Associated wallet deduction transaction ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "adminNote": {
+          "type": "string",
+          "description": "Fulfillment note or remark.",
+          "minLength": 0,
+          "maxLength": 240
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Order placement server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Order status update server timestamp."
+        }
+      },
+      "required": [
+        "id",
+        "orderCode",
+        "userId",
+        "userEmail",
+        "userName",
+        "productId",
+        "productName",
+        "productCategory",
+        "artworkKey",
+        "packageId",
+        "packageName",
+        "targetAccount",
+        "quantity",
+        "priceNpr",
+        "status",
+        "txId",
+        "adminNote",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "WalletTransaction": {
+      "title": "WalletTransaction",
+      "description": "Immutable financial ledger entry for Fonepay wallet loads, purchases, and admin adjustments.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Transaction document ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "referenceCode": {
+          "type": "string",
+          "description": "Fonepay or internal reference code.",
+          "minLength": 4,
+          "maxLength": 40,
+          "pattern": "^[A-Z0-9\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user UID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userEmail": {
+          "type": "string",
+          "format": "email",
+          "description": "Owner user email.",
+          "minLength": 5,
+          "maxLength": 120
+        },
+        "userName": {
+          "type": "string",
+          "description": "Owner user full name.",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "type": {
+          "type": "string",
+          "description": "Ledger entry classification.",
+          "enum": ["topup", "purchase", "admin_credit", "admin_debit", "refund"],
+          "maxLength": 20
+        },
+        "gateway": {
+          "type": "string",
+          "description": "Payment channel.",
+          "enum": ["eSewa_QR", "Wallet", "Admin"],
+          "maxLength": 20
+        },
+        "amountNpr": {
+          "type": "number",
+          "description": "Transaction value in NPR."
+        },
+        "balanceAfter": {
+          "type": "number",
+          "description": "Resulting wallet balance in NPR."
+        },
+        "status": {
+          "type": "string",
+          "description": "Verification status.",
+          "enum": ["pending", "verified", "rejected"],
+          "maxLength": 20
+        },
+        "note": {
+          "type": "string",
+          "description": "Human-readable description.",
+          "minLength": 2,
+          "maxLength": 240
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update server timestamp."
+        }
+      },
+      "required": [
+        "id",
+        "referenceCode",
+        "userId",
+        "userEmail",
+        "userName",
+        "type",
+        "gateway",
+        "amountNpr",
+        "balanceAfter",
+        "status",
+        "note",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Private user account profiles and NPR wallet balances."
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminGrant" },
+      "description": "Trusted administrator access control list."
+    },
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Storefront games, digital items, and SMM platforms."
+    },
+    "/packages/{packageId}": {
+      "schema": { "$ref": "#/entities/TopUpPackage" },
+      "description": "Top-up packages and SMM service tiers linked to products."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Customer top-up and SMM service orders."
+    },
+    "/transactions/{txId}": {
+      "schema": { "$ref": "#/entities/WalletTransaction" },
+      "description": "Wallet top-ups, purchase deductions, and admin adjustments."
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "ZX STORE",
+  "description": "Instant game top-ups, digital gift cards, and SMM services in Nepal with eSewa QR wallet support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

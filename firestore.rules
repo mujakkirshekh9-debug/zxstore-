@@ -1,0 +1,468 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net: Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // =========================================================================
+    // Hardened Global Primitives
+    // =========================================================================
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    // Exclusive Admin: paknep1414k@gmail.com only (all other accounts are regular users)
+    function isSuperAdmin() {
+      return isVerifiedUser() && request.auth.token.email == 'paknep1414k@gmail.com';
+    }
+
+    function isAdmin() {
+      return isSuperAdmin();
+    }
+
+    // =========================================================================
+    // Entity Validation Blueprints (Anti-Update-Gap)
+    // =========================================================================
+    function isValidUser(data) {
+      return data.keys().hasAll([
+          'uid', 'fullName', 'email', 'phone', 'role',
+          'walletBalance', 'lastTxId', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'fullName', 'email', 'phone', 'role',
+          'walletBalance', 'lastTxId', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.uid)
+        && data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 80
+        && data.email is string && data.email.size() >= 5 && data.email.size() <= 120
+        && data.phone is string && (
+          data.phone.size() == 0 || (
+            data.phone.size() >= 7 && data.phone.size() <= 20 && data.phone.matches('^[0-9+\\- ]+$')
+          )
+        )
+        && data.role is string && data.role.size() <= 10 && data.role in ['user', 'admin']
+        && data.walletBalance is number && data.walletBalance >= 0 && data.walletBalance <= 10000000
+        && isValidId(data.lastTxId)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAdminGrant(data) {
+      return data.keys().hasAll(['uid', 'email', 'grantedBy', 'createdAt'])
+        && data.keys().hasOnly(['uid', 'email', 'grantedBy', 'createdAt'])
+        && isValidId(data.uid)
+        && data.email is string && data.email.size() >= 5 && data.email.size() <= 120
+        && isValidId(data.grantedBy)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidProduct(data) {
+      return data.keys().hasAll([
+          'id', 'name', 'slug', 'category', 'smmPlatform', 'publisher',
+          'description', 'inputLabel', 'inputPlaceholder', 'artworkKey',
+          'badgeText', 'sortOrder', 'active', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'name', 'slug', 'category', 'smmPlatform', 'publisher',
+          'description', 'inputLabel', 'inputPlaceholder', 'artworkKey',
+          'badgeText', 'sortOrder', 'active', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && data.name is string && data.name.size() >= 2 && data.name.size() <= 80
+        && data.slug is string && data.slug.size() >= 2 && data.slug.size() <= 80 && data.slug.matches('^[a-z0-9\\-]+$')
+        && data.category is string && data.category.size() <= 20 && data.category in ['game', 'digital', 'smm']
+        && data.smmPlatform is string && data.smmPlatform.size() <= 20 && data.smmPlatform in ['none', 'Instagram', 'Facebook', 'YouTube', 'TikTok', 'Telegram']
+        && data.publisher is string && data.publisher.size() >= 2 && data.publisher.size() <= 60
+        && data.description is string && data.description.size() >= 5 && data.description.size() <= 400
+        && data.inputLabel is string && data.inputLabel.size() >= 2 && data.inputLabel.size() <= 60
+        && data.inputPlaceholder is string && data.inputPlaceholder.size() >= 2 && data.inputPlaceholder.size() <= 80
+        && data.artworkKey is string && data.artworkKey.size() >= 2 && data.artworkKey.size() <= 40 && data.artworkKey.matches('^[a-z0-9_\\-]+$')
+        && data.badgeText is string && data.badgeText.size() <= 30
+        && data.sortOrder is number && data.sortOrder >= 0 && data.sortOrder <= 9999
+        && data.active is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidPackage(data) {
+      return data.keys().hasAll([
+          'id', 'productId', 'name', 'amountLabel', 'bonusLabel',
+          'serviceType', 'priceNpr', 'originalPriceNpr', 'sortOrder',
+          'active', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'productId', 'name', 'amountLabel', 'bonusLabel',
+          'serviceType', 'priceNpr', 'originalPriceNpr', 'sortOrder',
+          'active', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.productId)
+        && data.name is string && data.name.size() >= 2 && data.name.size() <= 100
+        && data.amountLabel is string && data.amountLabel.size() >= 1 && data.amountLabel.size() <= 60
+        && data.bonusLabel is string && data.bonusLabel.size() <= 60
+        && data.serviceType is string && data.serviceType.size() <= 20 && data.serviceType in ['topup', 'Followers', 'Likes', 'Views', 'Members']
+        && data.priceNpr is number && data.priceNpr >= 1 && data.priceNpr <= 500000
+        && data.originalPriceNpr is number && data.originalPriceNpr >= 1 && data.originalPriceNpr <= 500000
+        && data.sortOrder is number && data.sortOrder >= 0 && data.sortOrder <= 9999
+        && data.active is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll([
+          'id', 'orderCode', 'userId', 'userEmail', 'userName',
+          'productId', 'productName', 'productCategory', 'artworkKey',
+          'packageId', 'packageName', 'targetAccount', 'quantity',
+          'priceNpr', 'status', 'txId', 'adminNote', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'orderCode', 'userId', 'userEmail', 'userName',
+          'productId', 'productName', 'productCategory', 'artworkKey',
+          'packageId', 'packageName', 'targetAccount', 'quantity',
+          'priceNpr', 'status', 'txId', 'adminNote', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && data.orderCode is string && data.orderCode.size() >= 4 && data.orderCode.size() <= 32 && data.orderCode.matches('^[A-Z0-9\\-]+$')
+        && isValidId(data.userId)
+        && data.userEmail is string && data.userEmail.size() >= 5 && data.userEmail.size() <= 120
+        && data.userName is string && data.userName.size() >= 2 && data.userName.size() <= 80
+        && isValidId(data.productId)
+        && data.productName is string && data.productName.size() >= 2 && data.productName.size() <= 80
+        && data.productCategory is string && data.productCategory.size() <= 20 && data.productCategory in ['game', 'digital', 'smm']
+        && data.artworkKey is string && data.artworkKey.size() >= 2 && data.artworkKey.size() <= 40 && data.artworkKey.matches('^[a-z0-9_\\-]+$')
+        && isValidId(data.packageId)
+        && data.packageName is string && data.packageName.size() >= 2 && data.packageName.size() <= 100
+        && data.targetAccount is string && data.targetAccount.size() >= 2 && data.targetAccount.size() <= 200
+        && data.quantity is number && data.quantity >= 1 && data.quantity <= 100
+        && data.priceNpr is number && data.priceNpr >= 1 && data.priceNpr <= 500000
+        && data.status is string && data.status.size() <= 20 && data.status in ['Pending', 'Successful', 'Cancelled']
+        && isValidId(data.txId)
+        && data.adminNote is string && data.adminNote.size() <= 240
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidTransaction(data) {
+      return data.keys().hasAll([
+          'id', 'referenceCode', 'userId', 'userEmail', 'userName',
+          'type', 'gateway', 'amountNpr', 'balanceAfter', 'status',
+          'note', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'referenceCode', 'userId', 'userEmail', 'userName',
+          'type', 'gateway', 'amountNpr', 'balanceAfter', 'status',
+          'note', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && data.referenceCode is string && data.referenceCode.size() >= 4 && data.referenceCode.size() <= 40 && data.referenceCode.matches('^[A-Z0-9\\-]+$')
+        && isValidId(data.userId)
+        && data.userEmail is string && data.userEmail.size() >= 5 && data.userEmail.size() <= 120
+        && data.userName is string && data.userName.size() >= 2 && data.userName.size() <= 80
+        && data.type is string && data.type.size() <= 20 && data.type in ['topup', 'purchase', 'admin_credit', 'admin_debit', 'refund']
+        && data.gateway is string && data.gateway.size() <= 20 && data.gateway in ['eSewa_QR', 'Wallet', 'Admin']
+        && data.amountNpr is number && data.amountNpr >= 1 && data.amountNpr <= 500000
+        && data.balanceAfter is number && data.balanceAfter >= 0 && data.balanceAfter <= 10000000
+        && data.status is string && data.status.size() <= 20 && data.status in ['pending', 'verified', 'rejected']
+        && data.note is string && data.note.size() >= 2 && data.note.size() <= 240
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // =========================================================================
+    // Collection Rules
+    // =========================================================================
+
+    // /users/{userId} — Isolated PII & Wallet State (Users CANNOT self-credit wallet!)
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+      allow list: if (isSignedIn() && resource.data.uid == request.auth.uid) || isSuperAdmin();
+
+      allow create: if isVerifiedUser()
+        && isValidId(userId)
+        && isValidUser(incoming())
+        && incoming().uid == userId
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (
+          (
+            request.auth.uid == userId
+            && incoming().walletBalance == 0
+            && incoming().lastTxId == 'init'
+            && (incoming().role == 'user' || (isSuperAdmin() && incoming().role == 'admin'))
+          )
+          || isAdmin()
+        );
+
+      allow update: if isVerifiedUser()
+        && isValidId(userId)
+        && isValidUser(incoming())
+        && incoming().uid == existing().uid
+        && incoming().email == existing().email
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Tier 1: Exclusive Admin (paknep1414k@gmail.com) Wallet Credit/Debit
+          isAdmin()
+          ||
+          // Action 1: Owner Profile Edit (Name & initial phone setup only; walletBalance strictly immutable)
+          (
+            request.auth.uid == userId
+            && incoming().role == 'user'
+            && incoming().role == existing().role
+            && incoming().walletBalance == existing().walletBalance
+            && incoming().lastTxId == existing().lastTxId
+            && (existing().phone == '' || incoming().phone == existing().phone)
+            && incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'phone', 'updatedAt'])
+          )
+          ||
+          // Action 2: Atomic Order Purchase Deduction ONLY (strictly decreases balance)
+          (
+            request.auth.uid == userId
+            && incoming().role == existing().role
+            && incoming().phone == existing().phone
+            && incoming().fullName == existing().fullName
+            && incoming().diff(existing()).affectedKeys().hasOnly(['walletBalance', 'lastTxId', 'updatedAt'])
+            && incoming().walletBalance >= 0
+            && incoming().walletBalance < existing().walletBalance
+            && !exists(/databases/$(database)/documents/transactions/$(incoming().lastTxId))
+            && getAfter(/databases/$(database)/documents/transactions/$(incoming().lastTxId)).data.userId == userId
+            && getAfter(/databases/$(database)/documents/transactions/$(incoming().lastTxId)).data.type == 'purchase'
+            && getAfter(/databases/$(database)/documents/transactions/$(incoming().lastTxId)).data.status == 'verified'
+            && getAfter(/databases/$(database)/documents/transactions/$(incoming().lastTxId)).data.amountNpr == (existing().walletBalance - incoming().walletBalance)
+            && getAfter(/databases/$(database)/documents/transactions/$(incoming().lastTxId)).data.balanceAfter == incoming().walletBalance
+          )
+        );
+
+      allow delete: if false;
+    }
+
+    // /admins/{adminId} — Locked to Super Admin only
+    match /admins/{adminId} {
+      allow get: if isSuperAdmin() && isValidId(adminId);
+      allow list: if isSuperAdmin() && resource.data.uid is string;
+      allow create, update, delete: if false;
+    }
+
+    function officialFreeFirePrices() {
+      return {
+        'pkg_ff_25': 36,
+        'pkg_ff_50': 60,
+        'pkg_ff_115': 118,
+        'pkg_ff_240': 228,
+        'pkg_ff_355': 370,
+        'pkg_ff_480': 475,
+        'pkg_ff_610': 555,
+        'pkg_ff_850': 785,
+        'pkg_ff_1240': 1150,
+        'pkg_ff_2530': 2230,
+        'pkg_ff_weekly': 235,
+        'pkg_ff_weekly_2x': 475,
+        'pkg_ff_weekly_3x': 685,
+        'pkg_ff_weekly_4x': 910,
+        'pkg_ff_monthly': 1115,
+        'pkg_ff_monthly_2x': 2195,
+        'pkg_ff_monthly_3x': 3250,
+        'pkg_ff_monthly_5x': 5390,
+        'pkg_ff_weekly_lite': 80,
+        'pkg_ff_weekly_lite_2x': 155,
+        'pkg_ff_weekly_lite_3x': 230,
+        'pkg_ff_weekly_lite_5x': 375,
+        'pkg_ff_lvl6': 80,
+        'pkg_ff_lvl10': 120,
+        'pkg_ff_lvl15': 120,
+        'pkg_ff_lvl20': 120,
+        'pkg_ff_lvl25': 120,
+        'pkg_ff_lvl30': 165
+      };
+    }
+
+    // /products/{productId} — Storefront Games & SMM Catalog
+    match /products/{productId} {
+      allow get: if isValidId(productId) && (resource.data.active == true || isAdmin());
+      allow list: if resource.data.active == true || isSuperAdmin();
+
+      allow create: if isAdmin()
+        && isValidId(productId)
+        && isValidProduct(incoming())
+        && incoming().id == productId
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isAdmin()
+        && isValidId(productId)
+        && isValidProduct(incoming())
+        && incoming().id == existing().id
+        && (incoming().createdAt == existing().createdAt || incoming().createdAt == request.time)
+        && incoming().updatedAt == request.time;
+
+      allow delete: if isAdmin() && isValidId(productId);
+    }
+
+    // /packages/{packageId} — Diamond / UC / SMM Packages
+    match /packages/{packageId} {
+      allow get: if isValidId(packageId) && (resource.data.active == true || isAdmin());
+      allow list: if resource.data.active == true || isSuperAdmin();
+
+      allow create: if isAdmin()
+        && isValidId(packageId)
+        && isValidPackage(incoming())
+        && incoming().id == packageId
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && exists(/databases/$(database)/documents/products/$(incoming().productId));
+
+      allow update: if isAdmin()
+        && isValidId(packageId)
+        && isValidPackage(incoming())
+        && incoming().id == existing().id
+        && incoming().productId == existing().productId
+        && (incoming().createdAt == existing().createdAt || incoming().createdAt == request.time)
+        && incoming().updatedAt == request.time;
+
+      allow delete: if isAdmin() && isValidId(packageId);
+    }
+
+    // /orders/{orderId} — Customer Game Top-Up & SMM Orders
+    match /orders/{orderId} {
+      allow get: if isSignedIn() && isValidId(orderId) && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if (isSignedIn() && resource.data.userId == request.auth.uid) || isSuperAdmin();
+
+      allow create: if isVerifiedUser()
+        && isValidId(orderId)
+        && isValidOrder(incoming())
+        && incoming().id == orderId
+        && incoming().userId == request.auth.uid
+        && incoming().status == 'Pending'
+        && incoming().adminNote == ''
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && exists(/databases/$(database)/documents/users/$(incoming().userId))
+        && (
+          (
+            exists(/databases/$(database)/documents/products/$(incoming().productId))
+            && exists(/databases/$(database)/documents/packages/$(incoming().packageId))
+            && get(/databases/$(database)/documents/packages/$(incoming().packageId)).data.productId == incoming().productId
+            && get(/databases/$(database)/documents/packages/$(incoming().packageId)).data.active == true
+            && incoming().priceNpr == (get(/databases/$(database)/documents/packages/$(incoming().packageId)).data.priceNpr * incoming().quantity)
+          )
+          ||
+          (
+            incoming().productId == 'freefire_bd_np'
+            && !exists(/databases/$(database)/documents/packages/pkg_ff_lvl30)
+            && incoming().packageId in officialFreeFirePrices()
+            && incoming().priceNpr == (officialFreeFirePrices()[incoming().packageId] * incoming().quantity)
+          )
+        )
+        && existsAfter(/databases/$(database)/documents/transactions/$(incoming().txId))
+        && getAfter(/databases/$(database)/documents/transactions/$(incoming().txId)).data.userId == request.auth.uid
+        && getAfter(/databases/$(database)/documents/transactions/$(incoming().txId)).data.type == 'purchase'
+        && getAfter(/databases/$(database)/documents/transactions/$(incoming().txId)).data.amountNpr == incoming().priceNpr
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.lastTxId == incoming().txId;
+
+      allow update: if isVerifiedUser()
+        && isValidId(orderId)
+        && isValidOrder(incoming())
+        && incoming().id == existing().id
+        && incoming().orderCode == existing().orderCode
+        && incoming().userId == existing().userId
+        && incoming().productId == existing().productId
+        && incoming().packageId == existing().packageId
+        && incoming().txId == existing().txId
+        && incoming().priceNpr == existing().priceNpr
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (!(existing().status in ['Successful', 'Cancelled']) || isAdmin())
+        && (
+          isAdmin()
+          && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'adminNote', 'updatedAt'])
+        );
+
+      allow delete: if false;
+    }
+
+    // /transactions/{txId} — Wallet Financial Ledger (eSewa QR Top-Ups MUST start as 'pending')
+    match /transactions/{txId} {
+      allow get: if isSignedIn() && isValidId(txId) && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if (isSignedIn() && resource.data.userId == request.auth.uid) || isSuperAdmin();
+
+      allow create: if isVerifiedUser()
+        && isValidId(txId)
+        && isValidTransaction(incoming())
+        && incoming().id == txId
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (
+          // Admin ledger entry (manual credit/debit/refund)
+          (
+            isAdmin()
+            && incoming().type in ['admin_credit', 'admin_debit', 'refund']
+            && (
+              exists(/databases/$(database)/documents/users/$(incoming().userId))
+              || existsAfter(/databases/$(database)/documents/users/$(incoming().userId))
+            )
+          )
+          ||
+          // User eSewa QR top-up request (PENDING ONLY — Admin must verify & approve before wallet credits)
+          (
+            incoming().userId == request.auth.uid
+            && incoming().type == 'topup'
+            && incoming().gateway == 'eSewa_QR'
+            && incoming().status == 'pending'
+            && incoming().amountNpr >= 10
+            && incoming().amountNpr <= 100000
+            && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          )
+          ||
+          // User Wallet Purchase Deduction (must match atomic order + wallet balance deduction)
+          (
+            incoming().userId == request.auth.uid
+            && incoming().type == 'purchase'
+            && incoming().gateway == 'Wallet'
+            && incoming().status == 'verified'
+            && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.lastTxId == txId
+            && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.walletBalance == incoming().balanceAfter
+          )
+        );
+
+      allow update: if isVerifiedUser()
+        && isValidId(txId)
+        && isValidTransaction(incoming())
+        && incoming().id == existing().id
+        && incoming().referenceCode == existing().referenceCode
+        && incoming().userId == existing().userId
+        && incoming().type == existing().type
+        && incoming().gateway == existing().gateway
+        && incoming().amountNpr == existing().amountNpr
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (!(existing().status in ['verified', 'rejected']) || isAdmin())
+        && (
+          isAdmin()
+          && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'balanceAfter', 'note', 'updatedAt'])
+        );
+
+      allow delete: if false;
+    }
+  }
+}
